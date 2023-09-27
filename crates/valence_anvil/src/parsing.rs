@@ -124,6 +124,17 @@ fn parse_chunk(
         return Err(ParseChunkError::MissingSections);
     };
 
+    let sections = sections
+        .into_iter()
+        .filter(|sect| {
+            return if let Some(Value::Compound(_)) = sect.get("block_states") {
+                true
+            } else {
+                false
+            };
+        })
+        .collect::<Vec<_>>();
+
     if sections.is_empty() {
         return Ok(UnloadedChunk::new());
     }
@@ -151,10 +162,15 @@ fn parse_chunk(
             return Err(ParseChunkError::MissingSectionY);
         };
 
+        // Skip chunks above/below world height.
+        if (sect_y as i32) < min_sect_y {
+            continue;
+        }
+
         let sect_y = (sect_y as i32 - min_sect_y) as u32;
 
         if sect_y >= chunk.height() / 16 {
-            return Err(ParseChunkError::SectionYOutOfBounds);
+            continue;
         }
 
         let Some(Value::Compound(mut block_states)) = section.remove("block_states") else {

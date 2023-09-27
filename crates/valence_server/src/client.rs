@@ -600,10 +600,21 @@ pub fn despawn_disconnected_clients(
 }
 
 fn update_chunk_load_dist(
-    mut clients: Query<(&mut Client, &ViewDistance, &OldViewDistance), Changed<ViewDistance>>,
+    mut clients: Query<
+        (&mut Client, &ViewDistance, &OldViewDistance, &Position),
+        Changed<ViewDistance>,
+    >,
 ) {
-    for (mut client, dist, old_dist) in &mut clients {
+    for (mut client, dist, old_dist, pos) in &mut clients {
         if client.is_added() {
+            // TODO: Locate to a better place.
+            // Set Chunk Cache Center On First Load.
+            let chunk_pos = ChunkPos::from(pos.0);
+            client.write_packet(&ChunkRenderDistanceCenterS2c {
+                chunk_x: VarInt(chunk_pos.x),
+                chunk_z: VarInt(chunk_pos.z),
+            });
+
             // Join game packet includes the view distance.
             continue;
         }
